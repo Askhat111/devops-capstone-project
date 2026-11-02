@@ -175,3 +175,14 @@ class TestAccount(unittest.TestCase):
         """It should not Deserialize an account with a TypeError"""
         account = Account()
         self.assertRaises(DataValidationError, account.deserialize, [])
+
+    def test_defaults_and_representation(self):
+        """Deserialization supplies today's date and optional phone defaults."""
+        from datetime import date
+        account = Account().deserialize({
+            "name": "Example customer", "email": "customer@example.com",
+            "address": "Example address"
+        })
+        self.assertEqual(account.date_joined, date.today())
+        self.assertIsNone(account.phone_number)
+        self.assertIn("Example customer", repr(account))
