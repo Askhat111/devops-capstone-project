@@ -110,3 +110,5 @@ ENV/
 
 # Rope project settings
 .ropeproject
+# Local execution evidence is collected separately from source code.
+evidence/
