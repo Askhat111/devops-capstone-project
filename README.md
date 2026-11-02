@@ -1,4 +1,25 @@
-# DevOps Capstone Template
+# devops-capstone-project
+
+[![CI Build](https://github.com/Askhat111/devops-capstone-project/actions/workflows/ci-build.yaml/badge.svg)](https://github.com/Askhat111/devops-capstone-project/actions/workflows/ci-build.yaml)
+
+Customer accounts microservice for an e-commerce website. The Flask and PostgreSQL API supports creating, reading, updating, deleting and listing accounts. Development uses tests first, a minimum 95% service coverage gate, GitHub Actions CI, security headers and CORS, container deployment to Kubernetes, and a Tekton delivery pipeline.
+
+Planning board: https://github.com/users/Askhat111/projects/2
+
+## API endpoints
+
+| Method | Endpoint | Success |
+| --- | --- | --- |
+| GET | /health | 200 health status |
+| POST | /accounts | 201 with Location |
+| GET | /accounts | 200 JSON array |
+| GET | /accounts/{id} | 200 JSON account |
+| PUT | /accounts/{id} | 200 updated account |
+| DELETE | /accounts/{id} | 204, including repeated deletion |
+
+Missing reads and updates return 404. Invalid required data returns 400 and unsupported request media returns 415.
+
+## Starter attribution
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.9](https://img.shields.io/badge/Python-3.9-green.svg)](https://shields.io/)
