@@ -12,6 +12,7 @@ from tests.factories import AccountFactory
 from service.common import status  # HTTP Status Codes
 from service.models import db, Account, init_db
 from service.routes import app
+from service import talisman
 
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql://postgres:postgres@localhost:5432/postgres"
@@ -31,6 +32,7 @@ class TestAccountService(TestCase):
         """Run once before all tests"""
         app.config["TESTING"] = True
         app.config["DEBUG"] = False
+        talisman.force_https = False
         app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URI
         app.logger.setLevel(logging.CRITICAL)
         init_db(app)
@@ -165,3 +167,12 @@ class TestAccountService(TestCase):
         self.assertEqual(self.client.get(endpoint).status_code, 404)
         self.assertEqual(self.client.delete(endpoint).status_code, 204)
         self.assertEqual(self.client.get(BASE_URL).json, [])
+
+    def test_security_headers(self):
+        """Responses include security policy and CORS headers."""
+        response = self.client.get("/", headers={"Origin": "https://example.com"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["X-Frame-Options"], "SAMEORIGIN")
+        self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+        self.assertIn("default-src 'self'", response.headers["Content-Security-Policy"])
+        self.assertEqual(response.headers["Access-Control-Allow-Origin"], "https://example.com")
