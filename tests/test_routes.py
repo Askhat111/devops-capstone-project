@@ -123,4 +123,45 @@ class TestAccountService(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
-    # ADD YOUR TEST CASES HERE ...
+    def test_get_account(self):
+        """Read returns the stored account and missing IDs return 404."""
+        account = self._create_accounts(1)[0]
+        response = self.client.get(f"{BASE_URL}/{account.id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, account.serialize())
+        self.assertEqual(self.client.get(f"{BASE_URL}/999999").status_code, 404)
+
+    def test_list_accounts(self):
+        """Listing returns an empty array or all persisted accounts."""
+        self.assertEqual(self.client.get(BASE_URL).json, [])
+        self._create_accounts(3)
+        response = self.client.get(BASE_URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json), 3)
+
+    def test_update_account(self):
+        """PUT persists changes without replacing the resource identity."""
+        account = self._create_accounts(1)[0]
+        payload = account.serialize()
+        payload.update(name="Updated customer", email="updated@example.com", id=99999)
+        response = self.client.put(f"{BASE_URL}/{account.id}", json=payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["id"], account.id)
+        self.assertEqual(self.client.get(f"{BASE_URL}/{account.id}").json["name"], "Updated customer")
+
+    def test_update_errors(self):
+        """PUT rejects missing resources, invalid bodies and wrong media."""
+        account = self._create_accounts(1)[0]
+        endpoint = f"{BASE_URL}/{account.id}"
+        self.assertEqual(self.client.put(f"{BASE_URL}/999999", json=account.serialize()).status_code, 404)
+        self.assertEqual(self.client.put(endpoint, json={"name": "Incomplete"}).status_code, 400)
+        self.assertEqual(self.client.put(endpoint, data="invalid", content_type="text/plain").status_code, 415)
+
+    def test_delete_account(self):
+        """DELETE removes an account and is idempotent."""
+        account = self._create_accounts(1)[0]
+        endpoint = f"{BASE_URL}/{account.id}"
+        self.assertEqual(self.client.delete(endpoint).status_code, 204)
+        self.assertEqual(self.client.get(endpoint).status_code, 404)
+        self.assertEqual(self.client.delete(endpoint).status_code, 204)
+        self.assertEqual(self.client.get(BASE_URL).json, [])
