@@ -1,0 +1,10 @@
+.git
+.github
+tests
+__pycache__
+*.pyc
+.coverage
+*.txt
+!requirements.txt
+venv
+.venv
