@@ -15,6 +15,11 @@ spec:
     - name: repo-url
     - name: branch
       default: main
+    - name: build-image
+      type: string
+    - name: app-name
+      type: string
+      default: accounts
   tasks:
     - name: init
       workspaces:
@@ -36,3 +41,56 @@ spec:
         value: $(params.branch)
       runAfter:
         - init
+
+    - name: lint
+      runAfter: [clone]
+      taskRef:
+        name: flake8
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
+      params:
+        - name: image
+          value: python:3.9-slim
+        - name: args
+          value: ["--count", "--max-complexity=10", "--max-line-length=127", "--statistics"]
+    - name: tests
+      runAfter: [clone]
+      taskRef:
+        name: nose
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
+      params:
+        - name: database_uri
+          value: sqlite:///test.db
+        - name: args
+          value: -v --with-spec --spec-color
+    - name: build
+      runAfter: [lint, tests]
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
+      params:
+        - name: IMAGE
+          value: $(params.build-image)
+    - name: deploy
+      runAfter: [build]
+      taskRef:
+        name: openshift-client
+        kind: ClusterTask
+      workspaces:
+        - name: manifest-dir
+          workspace: pipeline-workspace
+      params:
+        - name: SCRIPT
+          value: |
+            set -eu
+            echo "Updating deployment image..."
+            sed -i "s|IMAGE_NAME_HERE|$(params.build-image)|g" deploy/deployment.yaml
+            oc apply -f deploy/
+            oc rollout status deployment/$(params.app-name) --timeout=90s
+            oc get deployment,replicaset,pods,service -l app=$(params.app-name)

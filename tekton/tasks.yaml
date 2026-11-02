@@ -49,4 +49,37 @@ spec:
           # Delete files and directories starting with .. plus any other character
           rm -rf "${WORKSPACE_SOURCE_PATH}"/..?*
         fi
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: nose
+spec:
+  description: Run the service tests and enforce the minimum coverage threshold.
+  workspaces:
+    - name: source
+  params:
+    - name: args
+      type: string
+      default: -v
+    - name: database_uri
+      type: string
+      default: sqlite:///test.db
+  steps:
+    - name: nosetests
+      image: python:3.9-slim
+      workingDir: $(workspaces.source.path)
+      env:
+        - name: DATABASE_URI
+          value: $(params.database_uri)
+      script: |
+        #!/bin/bash
+        set -euo pipefail
+        export HOME=/tmp
+        export PYTHONUSERBASE=/tmp/python-user
+        export PATH="${PYTHONUSERBASE}/bin:${PATH}"
+        python -m pip install --user --upgrade pip wheel
+        python -m pip install --user -qr requirements.txt
+        nosetests $(params.args)
+        coverage report --fail-under=95
 
